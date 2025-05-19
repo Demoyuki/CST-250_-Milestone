@@ -13,7 +13,6 @@ namespace MineSweeperConsole
 
             board = new Board(20, 0.2f);
             Console.WriteLine("Here is the answer key for the second board");
-            PrintAnswers(board);
             // Test the "Hint" reward
             Console.WriteLine("Using hint reward...");
             board.UseHintReward();
@@ -25,7 +24,14 @@ namespace MineSweeperConsole
             Console.Write("   "); // Padding for row numbers
             for (int col = 0; col < board.Size; col++)
             {
-                Console.Write($" {col}  "); // Column numbers
+                if (col > 9)
+                {
+                    Console.Write($" {col} "); // Column numbers
+                }
+                else
+                {
+                    Console.Write($" {col}  "); // Column numbers
+                }
             }
             Console.WriteLine();
 
