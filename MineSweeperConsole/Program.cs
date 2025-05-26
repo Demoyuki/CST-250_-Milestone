@@ -1,4 +1,5 @@
-﻿using MineSweeperClasses;
+﻿using System.Drawing;
+using MineSweeperClasses;
 using static MineSweeperClasses.Board;
 
 namespace MineSweeperConsole
@@ -10,15 +11,14 @@ namespace MineSweeperConsole
             do
             {
                 RunGame();
-            }
-            while (PlayAgain());
+            } while (PlayAgain());
         }
 
         static void RunGame()
         {
             Console.Clear();
             Console.WriteLine("Welcome to Minesweeper!");
-            Board board = new Board(5, 0.2f); // Small board for testing
+            Board board = new Board(5, 0.1f); // Small board for testing
             bool gameOver = false;
             PrintAnswers(board);
 
@@ -37,7 +37,7 @@ namespace MineSweeperConsole
                         continue;
                     }
 
-                    if (row < 0 || row >= board.Size || col < 0 || col >= board.Size)
+                    if (!IsInBounds(board, row, col))
                     {
                         Console.WriteLine("Coordinates out of range.");
                         continue;
@@ -45,50 +45,40 @@ namespace MineSweeperConsole
 
                     Cell cell = board.Cells[row, col];
 
-                    if (action == 1) // Visit
+                    switch (action)
                     {
-                        if (!cell.IsVisited && !cell.IsFlagged)
-                        {
-                            RevealCellAndNeighbors(board, row, col);
-                            if (cell.HasSpecialReward)
-                            {
-                                Console.WriteLine("You found a reward! Use it next turn.");
-                                board.UseHintReward();
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("Cell already visited or flagged.");
-                        }
-                    }
-                    else if (action == 2) // Flag
-                    {
-                        if (!cell.IsVisited)
-                            cell.IsFlagged = !cell.IsFlagged; // Toggle flag
-                        else
-                            Console.WriteLine("You cannot flag a visited cell.");
-                    }
-                    else if (action == 3) // Use Reward
-                    {
-                        board.UseHintReward();
-                    }
-                    else
-                    {
-                        Console.WriteLine("Invalid action. Choose 1, 2, or 3.");
+                        case 1:
+                            HandleVisit(board, row, col, cell);
+                            break;
+                        case 2:
+                            HandleFlag(cell);
+                            break;
+                        case 3:
+                            board.UseHintReward();
+                            break;
+                        default:
+                            Console.WriteLine("Invalid action. Choose 1, 2, or 3.");
+                            break;
                     }
 
-                    GameStatus status = board.DetermineGameState();
-                    if (status == GameStatus.Won)
+                    switch (board.DetermineGameState())
                     {
-                        PrintBoard(board);
-                        Console.WriteLine("You won!");
-                        gameOver = true;
-                    }
-                    else if (status == GameStatus.Lost)
-                    {
-                        PrintBoard(board);
-                        Console.WriteLine("You hit a bomb! Game over.");
-                        gameOver = true;
+                        case GameStatus.Won:
+                            PrintBoard(board);
+                            Console.Beep(1000, 200);
+                            Console.Beep(1200, 200);
+                            Console.Beep(1400, 300);
+                            Console.WriteLine("You won!");
+                            gameOver = true;
+                            break;
+                        case GameStatus.Lost:
+                            PrintBoard(board);
+                            Console.Beep(400, 300);
+                            Console.Beep(300, 300);
+                            Console.Beep(200, 500);
+                            Console.WriteLine("You hit a bomb! Game over.");
+                            gameOver = true;
+                            break;
                     }
                 }
                 catch (Exception ex)
@@ -105,34 +95,41 @@ namespace MineSweeperConsole
             return input == "y" || input == "yes";
         }
 
-        static void RevealCellAndNeighbors(Board board, int row, int col)
+        static void HandleVisit(Board board, int row, int col, Cell cell)
         {
-            if (row < 0 || row >= board.Size || col < 0 || col >= board.Size) return;
-
-            Cell cell = board.Cells[row, col];
-
-            if (cell.IsVisited || cell.IsFlagged) return;
-
-            cell.IsVisited = true;
-
-            if (cell.NumberOfBombNeighbors == 0 && !cell.IsBomb)
+            if (!cell.IsVisited && !cell.IsFlagged)
             {
-                for (int i = row - 1; i <= row + 1; i++)
+                board.RevealCellAndNeighbors(row, col);
+                if (cell.HasSpecialReward)
                 {
-                    for (int j = col - 1; j <= col + 1; j++)
-                    {
-                        if (i == row && j == col) continue;
-                        RevealCellAndNeighbors(board, i, j);
-                    }
+                    Console.WriteLine("You found a reward! You can use it in a future turn.");
+                    board.RemainingRewards++;
+                    cell.HasSpecialReward = false;
                 }
             }
+            else
+            {
+                Console.WriteLine("Cell already visited or flagged.");
+            }
         }
+
+        static void HandleFlag(Cell cell)
+        {
+            if (!cell.IsVisited)
+                cell.IsFlagged = !cell.IsFlagged;
+            else
+                Console.WriteLine("You cannot flag a visited cell.");
+        }
+
+
+        static bool IsInBounds(Board board, int row, int col)
+        {
+            return row >= 0 && row < board.Size && col >= 0 && col < board.Size;
+        }
+
         static void PrintBoard(Board board)
         {
-            Console.Write("   ");
-            for (int col = 0; col < board.Size; col++) Console.Write($" {col}  ");
-            Console.WriteLine("\n  +" + string.Join("", Enumerable.Repeat("---+", board.Size)));
-
+            PrintHeader(board.Size);
             for (int i = 0; i < board.Size; i++)
             {
                 Console.Write($"{i} |");
@@ -140,120 +137,89 @@ namespace MineSweeperConsole
                 {
                     Cell cell = board.Cells[i, j];
                     Console.Write(" ");
-                    if (cell.IsFlagged)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.Write("F"); // Flagged cells
-                    }
-                    else if (!cell.IsVisited)
-                    {
-                        Console.ForegroundColor = ConsoleColor.White;
-                        Console.Write("?"); // Hidden cells
-                    }
-                    else if (cell.IsBomb)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.Write("B"); // Revealed bombs
-                    }
-                    else if (cell.NumberOfBombNeighbors > 0)
-                    {
-                        // Color-coded numbers (same as Milestone 1)
-                        Console.Write(cell.NumberOfBombNeighbors);
-                    }
-                    else
-                    {
-                        Console.Write("."); // Empty revealed cell
-                    }
+                    (char symbol, ConsoleColor color) = GetCellDisplay(cell);
+                    Console.ForegroundColor = color;
+                    Console.Write(symbol);
                     Console.ResetColor();
                     Console.Write(" |");
                 }
-                Console.WriteLine("\n  +" + string.Join("", Enumerable.Repeat("---+", board.Size)));
+                Console.WriteLine();
+                PrintDivider(board.Size);
             }
         }
 
         static void PrintAnswers(Board board)
         {
-            // Print column numbers (header)
-            Console.Write("   "); // Padding for row numbers
-            for (int col = 0; col < board.Size; col++)
-            {
-                if (col > 9)
-                {
-                    Console.Write($" {col} "); // Column numbers
-                }
-                else
-                {
-                    Console.Write($" {col}  "); // Column numbers
-                }
-            }
-            Console.WriteLine();
-
-            // Print top border
-            Console.Write("  +");
-            for (int col = 0; col < board.Size; col++)
-            {
-                Console.Write("---+"); // Divider line
-            }
-            Console.WriteLine();
-
+            PrintHeader(board.Size);
             for (int i = 0; i < board.Size; i++)
             {
-                // Print row number
-                Console.Write($"{i} |"); // Left border
-
+                Console.Write($"{i} |");
                 for (int j = 0; j < board.Size; j++)
                 {
                     Cell cell = board.Cells[i, j];
                     Console.Write(" ");
-
-                    // Set colors based on cell content
-                    if (cell.IsBomb)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red; // Bombs = Bright Red
-                        Console.Write("B");
-                    }
-                    else if (cell.HasSpecialReward)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Yellow; // Rewards = Yellow
-                        Console.Write("R");
-                    }
-                    else if (cell.NumberOfBombNeighbors > 0)
-                    {
-                        // Color-code numbers 1-8
-                        switch (cell.NumberOfBombNeighbors)
-                        {
-                            case 1: Console.ForegroundColor = ConsoleColor.Blue; break;
-                            case 2: Console.ForegroundColor = ConsoleColor.Green; break;
-                            case 3: Console.ForegroundColor = ConsoleColor.Red; break;
-                            case 4: Console.ForegroundColor = ConsoleColor.DarkBlue; break;
-                            case 5: Console.ForegroundColor = ConsoleColor.DarkRed; break;
-                            case 6: Console.ForegroundColor = ConsoleColor.Magenta; break;
-                            case 7: Console.ForegroundColor = ConsoleColor.DarkMagenta; break;
-                            case 8: Console.ForegroundColor = ConsoleColor.Gray; break;
-                        }
-                        Console.Write(cell.NumberOfBombNeighbors);
-                    }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.White; // Default for empty cells
-                        Console.Write(".");
-                    }
-
-                    Console.ResetColor(); // Reset to default after each cell
-                    Console.Write(" |"); // Right border
-                }
-
-                Console.WriteLine();
-
-                // Print divider line between rows
-                Console.Write("  +");
-                for (int col = 0; col < board.Size; col++)
-                {
-                    Console.Write("---+");
+                    (char symbol, ConsoleColor color) = GetAnswerDisplay(cell);
+                    Console.ForegroundColor = color;
+                    Console.Write(symbol);
+                    Console.ResetColor();
+                    Console.Write(" |");
                 }
                 Console.WriteLine();
+                PrintDivider(board.Size);
             }
         }
 
+        static void PrintHeader(int size)
+        {
+            Console.Write("   ");
+            for (int col = 0; col < size; col++) Console.Write($" {col}  ");
+            Console.WriteLine();
+            PrintDivider(size);
+        }
+
+        static void PrintDivider(int size)
+        {
+            Console.Write("  +");
+            for (int col = 0; col < size; col++) Console.Write("---+");
+            Console.WriteLine();
+        }
+
+        static (char symbol, ConsoleColor color) GetAnswerDisplay(Cell cell)
+        {
+            if (cell.IsBomb) return ('B', ConsoleColor.Red);
+            if (cell.HasSpecialReward) return ('R', ConsoleColor.Yellow);
+            return GetNeighborDisplay(cell);
+        }
+
+        static (char symbol, ConsoleColor color) GetCellDisplay(Cell cell)
+        {
+            if (cell.IsRevealedByHint) return ('B', ConsoleColor.DarkRed);
+            if (cell.IsFlagged) return ('F', ConsoleColor.Cyan);
+            if (!cell.IsVisited) return ('?', ConsoleColor.White);
+            if (cell.IsBomb) return ('B', ConsoleColor.Red);
+            if (cell.HasSpecialReward) return ('R', ConsoleColor.Yellow);
+            return GetNeighborDisplay(cell);
+        }
+
+        static (char symbol, ConsoleColor color) GetNeighborDisplay(Cell cell)
+        {
+            if (cell.NumberOfBombNeighbors > 0)
+            {
+                ConsoleColor color = cell.NumberOfBombNeighbors switch
+                {
+                    1 => ConsoleColor.Blue,
+                    2 => ConsoleColor.Green,
+                    3 => ConsoleColor.Red,
+                    4 => ConsoleColor.DarkBlue,
+                    5 => ConsoleColor.DarkRed,
+                    6 => ConsoleColor.Magenta,
+                    7 => ConsoleColor.DarkMagenta,
+                    8 => ConsoleColor.Gray,
+                    _ => ConsoleColor.White
+                };
+                return (cell.NumberOfBombNeighbors.ToString()[0], color);
+            }
+            return ('.', ConsoleColor.White);
+        }
     }
 }

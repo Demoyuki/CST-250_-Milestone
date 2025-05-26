@@ -14,6 +14,8 @@ namespace MineSweeperClasses
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public enum GameStatus { InProgress, Won, Lost }
+        public int RemainingRewards { get; set; } = 0;
+
         public Board(int size, float difficulty)
         {
             Size = size;
@@ -71,13 +73,18 @@ namespace MineSweeperClasses
                 }
             }
         }
-
         public void UseHintReward()
         {
+            if (RemainingRewards <= 0)
+            {
+                Console.WriteLine("You don't have any rewards to use.");
+                return;
+            }
+
             List<Cell> bombs = new List<Cell>();
             foreach (var cell in Cells)
             {
-                if (cell.IsBomb && !cell.IsVisited)
+                if (cell.IsBomb && !cell.IsVisited && !cell.IsRevealedByHint)
                 {
                     bombs.Add(cell);
                 }
@@ -87,14 +94,16 @@ namespace MineSweeperClasses
             {
                 Random random = new Random();
                 Cell revealedBomb = bombs[random.Next(bombs.Count)];
-                revealedBomb.IsVisited = true; // Reveal the bomb
+                revealedBomb.IsRevealedByHint = true; // Don't mark it as visited!
                 Console.WriteLine($"Hint: Bomb revealed at ({revealedBomb.Row}, {revealedBomb.Column})");
+                RemainingRewards--;
             }
             else
             {
                 Console.WriteLine("No unrevealed bombs left!");
             }
         }
+
 
         private void SetupBombs()
         {
@@ -140,5 +149,41 @@ namespace MineSweeperClasses
             }
             return count;
         }
+        public void RevealCellAndNeighbors(int row, int col)
+        {
+            if (row < 0 || row >= Size || col < 0 || col >= Size)
+                return;
+
+            Cell cell = Cells[row, col];
+            if (cell.IsVisited || cell.IsFlagged)
+                return;
+
+            cell.IsVisited = true;
+
+            // Check for reward and collect it
+            if (cell.HasSpecialReward)
+            {
+                Console.WriteLine($"You found a reward at ({row}, {col})!");
+                RemainingRewards++;
+                cell.HasSpecialReward = false;
+            }
+
+            // Stop if the cell has a bomb or has bomb neighbors
+            if (cell.IsBomb || cell.NumberOfBombNeighbors > 0)
+                return;
+
+            // Recursively reveal neighbors
+            for (int i = row - 1; i <= row + 1; i++)
+            {
+                for (int j = col - 1; j <= col + 1; j++)
+                {
+                    if (i == row && j == col)
+                        continue;
+
+                    RevealCellAndNeighbors(i, j);
+                }
+            }
+        }
+
     }
 }

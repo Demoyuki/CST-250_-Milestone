@@ -15,5 +15,7 @@ namespace MineSweeperClasses
         public bool IsFlagged { get; set; } = false;
         public int NumberOfBombNeighbors { get; set; } = 0;
         public bool HasSpecialReward { get; set; } = false;
+        public bool IsRevealedByHint { get; set; } = false;
+
     }
 }
