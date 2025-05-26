@@ -13,7 +13,7 @@ namespace MineSweeperClasses
         public Cell[,] Cells { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-
+        public enum GameStatus { InProgress, Won, Lost }
         public Board(int size, float difficulty)
         {
             Size = size;
@@ -21,7 +21,26 @@ namespace MineSweeperClasses
             Cells = new Cell[size, size];
             InitializeBoard();
         }
+        public GameStatus DetermineGameState()
+        {
+            bool allNonBombsVisited = true;
+            bool bombTriggered = false;
 
+            foreach (var cell in Cells)
+            {
+                if (cell.IsBomb && cell.IsVisited)
+                {
+                    bombTriggered = true; // Player clicked a bomb
+                }
+                else if (!cell.IsBomb && !cell.IsVisited && !cell.IsFlagged)
+                {
+                    allNonBombsVisited = false; // Game continues
+                }
+            }
+
+            if (bombTriggered) return GameStatus.Lost;
+            return allNonBombsVisited ? GameStatus.Won : GameStatus.InProgress;
+        }
         private void InitializeBoard()
         {
             for (int i = 0; i < Size; i++)
