@@ -15,6 +15,7 @@ namespace MineSweeperClasses
         public DateTime EndTime { get; set; }
         public enum GameStatus { InProgress, Won, Lost }
         public int RemainingRewards { get; set; } = 0;
+        public bool ShowAnimation { get; set; } = true;
 
         public Board(int size, float difficulty)
         {
@@ -149,7 +150,8 @@ namespace MineSweeperClasses
             }
             return count;
         }
-        public void RevealCellAndNeighbors(int row, int col)
+        //RevealCellAndNeighbors
+        public void FloodFill(int row, int col, Action<Board> onUpdate = null)
         {
             if (row < 0 || row >= Size || col < 0 || col >= Size)
                 return;
@@ -168,6 +170,13 @@ namespace MineSweeperClasses
                 cell.HasSpecialReward = false;
             }
 
+            // Trigger update callback if provided
+            if (onUpdate != null)
+            {
+                onUpdate(this);
+                if (ShowAnimation) Thread.Sleep(100);
+            }
+
             // Stop if the cell has a bomb or has bomb neighbors
             if (cell.IsBomb || cell.NumberOfBombNeighbors > 0)
                 return;
@@ -180,10 +189,9 @@ namespace MineSweeperClasses
                     if (i == row && j == col)
                         continue;
 
-                    RevealCellAndNeighbors(i, j);
+                    FloodFill(i, j, onUpdate);
                 }
             }
         }
-
     }
 }

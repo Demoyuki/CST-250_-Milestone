@@ -18,7 +18,7 @@ namespace MineSweeperConsole
         {
             Console.Clear();
             Console.WriteLine("Welcome to Minesweeper!");
-            Board board = new Board(5, 0.1f); // Small board for testing
+            Board board = new Board(5, 0.1f) { ShowAnimation = true }; // Set to false to disable animation
             bool gameOver = false;
             PrintAnswers(board);
 
@@ -87,7 +87,7 @@ namespace MineSweeperConsole
                 }
             }
         }
-
+        
         static bool PlayAgain()
         {
             Console.WriteLine("Would you like to play again? (y/yes to restart)");
@@ -99,7 +99,19 @@ namespace MineSweeperConsole
         {
             if (!cell.IsVisited && !cell.IsFlagged)
             {
-                board.RevealCellAndNeighbors(row, col);
+                if (cell.IsBomb)
+                {
+                    cell.IsVisited = true;
+                    return;
+                }
+
+                // Reveal the cell with visual feedback
+                board.FloodFill(row, col, b =>
+                {
+                    Console.Clear();
+                    PrintBoard(b);
+                });
+
                 if (cell.HasSpecialReward)
                 {
                     Console.WriteLine("You found a reward! You can use it in a future turn.");
@@ -112,6 +124,7 @@ namespace MineSweeperConsole
                 Console.WriteLine("Cell already visited or flagged.");
             }
         }
+
 
         static void HandleFlag(Cell cell)
         {
