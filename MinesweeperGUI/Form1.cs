@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text;
 using MineSweeperClasses;
 using static MineSweeperClasses.Board;
 
@@ -19,6 +21,9 @@ namespace MinesweeperGUI
         private Dictionary<string, Image> cellImages = new Dictionary<string, Image>();
         private string imageFolder = "Images"; // Folder containing cell images
 
+        // HighScores
+        private const string HighScoreFile = "highscores.json";
+        private List<GameStats> highScores = new List<GameStats>();
 
         public Form1(int size, float difficulty)
         {
@@ -309,25 +314,58 @@ namespace MinesweeperGUI
             currentGameStats.EndTime = DateTime.Now;
             currentGameStats.IsWinner = isWinner;
 
-            TimeSpan elapsed = currentGameStats.EndTime - currentGameStats.StartTime;
-
-            // Apply penalty: lose 1% of score per 10 seconds
-            double penaltyFactor = Math.Min(1.0, elapsed.TotalSeconds / 100); // cap at 100% max
-            int penalty = (int)(currentGameStats.Score * penaltyFactor);
-            currentGameStats.Score = Math.Max(0, currentGameStats.Score - penalty);
-
-            lblScore.Text = $"Score: {currentGameStats.Score}";
-
             if (isWinner)
             {
-                MessageBox.Show($"You won! Final Score: {currentGameStats.Score}", "Game Over");
+                // Get player name
+                string playerName = Microsoft.VisualBasic.Interaction.InputBox(
+                    "You won! Enter your name:",
+                    "High Score",
+                    "Player"
+                );
+
+                if (!string.IsNullOrEmpty(playerName))
+                {
+                    currentGameStats.Name = playerName;
+                    SaveHighScore(currentGameStats);
+                    OpenHighScoresForm(); // Show high scores after saving
+                }
             }
             else
             {
-                MessageBox.Show($"You lost. Final Score: {currentGameStats.Score}", "Game Over");
+                MessageBox.Show("Game Over! Try again.", "Defeat");
             }
 
             btnPlayAgain.Visible = true;
+        }
+        private void OpenHighScoresForm()
+        {
+            // Load existing scores (if any)
+            if (File.Exists(HighScoreFile))
+            {
+                HighScoreForm highScoreForm = new HighScoreForm();
+                highScoreForm.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("No high scores found!", "Information");
+            }
+        }
+        private void SaveHighScore(GameStats stats)
+        {
+            // Load existing scores
+            if (File.Exists(HighScoreFile))
+            {
+                string json = File.ReadAllText(HighScoreFile);
+                highScores = JsonSerializer.Deserialize<List<GameStats>>(json) ?? new List<GameStats>();
+            }
+
+            // Add new score
+            stats.Id = highScores.Count + 1;
+            highScores.Add(stats);
+
+            // Save to file
+            string updatedJson = JsonSerializer.Serialize(highScores);
+            File.WriteAllText(HighScoreFile, updatedJson);
         }
 
         private Color GetNumberColor(int number)
@@ -363,5 +401,9 @@ namespace MinesweeperGUI
             lblScore.Text = $"Score: 0";
         }
 
+        private void btnScores_Click(object sender, EventArgs e)
+        {
+            OpenHighScoresForm();
+        }
     }
 }

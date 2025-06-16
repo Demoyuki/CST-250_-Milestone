@@ -32,6 +32,7 @@
             pnlGame = new Panel();
             lblTimerQty = new Label();
             gbxStatus = new GroupBox();
+            btnScores = new Button();
             btnPlayAgain = new Button();
             lblScore = new Label();
             lblTimer = new Label();
@@ -61,6 +62,7 @@
             // 
             // gbxStatus
             // 
+            gbxStatus.Controls.Add(btnScores);
             gbxStatus.Controls.Add(btnPlayAgain);
             gbxStatus.Controls.Add(lblScore);
             gbxStatus.Controls.Add(lblTimer);
@@ -71,6 +73,16 @@
             gbxStatus.TabIndex = 1;
             gbxStatus.TabStop = false;
             gbxStatus.Text = "Status:";
+            // 
+            // btnScores
+            // 
+            btnScores.Location = new Point(111, 115);
+            btnScores.Name = "btnScores";
+            btnScores.Size = new Size(104, 23);
+            btnScores.TabIndex = 1;
+            btnScores.Text = "High Scores";
+            btnScores.UseVisualStyleBackColor = true;
+            btnScores.Click += btnScores_Click;
             // 
             // btnPlayAgain
             // 
@@ -146,5 +158,6 @@
         private TableLayoutPanel tableLayoutPanel1;
         private Label lblTimer;
         public System.Windows.Forms.Timer GameTimer;
+        private Button btnScores;
     }
 }
