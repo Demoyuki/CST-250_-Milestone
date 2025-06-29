@@ -400,10 +400,5 @@ namespace MinesweeperGUI
             InitializeGame();
             lblScore.Text = $"Score: 0";
         }
-
-        private void btnScores_Click(object sender, EventArgs e)
-        {
-            OpenHighScoresForm();
-        }
     }
 }
